@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 from datetime import datetime
+from collections import defaultdict
 
 DATA = Path("expenses.json")
 
@@ -23,13 +24,19 @@ def cmd_list(args):
         print(f'{it["date"][:10]}  {it["amount"]:>8.2f}  {it["category"]:<12} {it["note"]}')
 
 def cmd_total(args):
-    total = sum(it["amount"] for it in load())
-    print(f"total: {total:.2f}")
+    print(f"total: {sum(it["amount"] for it in load()):.2f}")
+
+def cmd_summary(args):
+    by_cat = defaultdict(float)
+    for it in load():
+        by_cat[it["category"]] += it["amount"]
+    for cat, amt in sorted(by_cat.items(), key=lambda kv: -kv[1]):
+        print(f"{cat:<12} {amt:>8.2f}")
 
 parser = argparse.ArgumentParser()
 sub = parser.add_subparsers(dest="cmd")
 add = sub.add_parser("add"); add.add_argument("amount", type=float)
 add.add_argument("category"); add.add_argument("note", nargs="?")
-sub.add_parser("list"); sub.add_parser("total")
+sub.add_parser("list"); sub.add_parser("total"); sub.add_parser("summary")
 args = parser.parse_args()
-{"add": cmd_add, "list": cmd_list, "total": cmd_total}.get(args.cmd, lambda a: parser.print_help())(args)
+{"add": cmd_add, "list": cmd_list, "total": cmd_total, "summary": cmd_summary}.get(args.cmd, lambda a: parser.print_help())(args)
